@@ -1,0 +1,41 @@
+Description of code files:
+Full code: Contains all code used in the study
+
+Generate Multigroup - MNRM, IRTree-M: Contains the code used to generate the main results of the paper
+Analysis of Generated Data: Contains the code used to analyze the main generated data
+
+Introduction and Appendix graphs: Contains the code used to create the graphs in the introduction and Appendix
+
+Thresholds and Slopes Trial MNRM: Contains the code used to experiment with various MNRM item parameters to choose
+which parameters we would use in our study
+
+PISA data math empirical example: Contains the code used to analyze the empirical example. Combine with 
+"INT_STU12_DEC03" datafile which can be obtained here or downloaded from the PISA site under PISA 2012
+
+Extra simulation conditions code: Contains the code used to generate extra simulation conditions requested
+by reviewers
+
+
+
+Description of data files:
+INT-STU12_DEC03: PISA 2012 datafile used in the empirical example
+
+Treenodes: Contains the IRTree parameters based on the MNRM parameters chosen in the paper. Possible to load
+this to save some time in the main simulation code or examine the tree parameters further
+
+Treedata_norm12: Contains the simulation data with unequally spaced m-values as requested by reviewer. Analysis
+for this data can be found in Full code or Extra simulations conditions code
+
+Treedata12_N250: Contains the simulation data with a sample size of 250 rather than 500 as requested by
+reviewer. Analysis can be found in same place as Treedata_norm12
+
+Treedata12_N1000: Contains the simulation data with a sample size of 1000 rather than 500 as requested by
+reviewer. Analysis can be found in same place as Treedata_norm12
+
+Final Data: Contains all the data used in the main paper simulation. Combine with Analysis of Generated Data
+if resimulating the data is not the aim
+
+PISA example: Contains the data used in the empirical example. Can be used if reloading the PISA data and running
+the code is not desired
+
+Bins and data: Contains binned values used to create the individual results graph in the Appendix
