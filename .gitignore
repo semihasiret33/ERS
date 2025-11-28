@@ -1,0 +1,47 @@
+# R and RStudio files
+.Rproj.user
+.Rhistory
+.RData
+.Ruserdata
+*.Rproj
+
+# Data files (can be large)
+data/raw/*.sav
+data/raw/*.csv
+data/raw/*.rds
+data/processed/*.rds
+data/simulated/*.rds
+
+# Output files (can be regenerated)
+output/figures/*.png
+output/figures/*.pdf
+output/tables/*.csv
+output/tables/*.tex
+output/reports/*.html
+output/reports/*.pdf
+
+# R package management
+renv/library/
+renv/local/
+renv/cellar/
+renv/lock/
+renv/python/
+renv/sandbox/
+renv/staging/
+.Rprofile
+
+# Operating System
+.DS_Store
+Thumbs.db
+
+# Temporary files
+*.tmp
+*.bak
+*~
+
+# IDE
+.vscode/
+.idea/
+
+# Keep directory structure (keep .gitkeep files)
+!.gitkeep

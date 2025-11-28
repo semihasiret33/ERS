@@ -2,11 +2,13 @@
 
 ## 📋 Repository Overview
 
-**Repository Name:** ERS
-**Purpose:** [To be defined as project develops]
-**Status:** Initial setup phase
+**Repository Name:** ERS (Extreme Response Style)
+**Full Title:** Aşırı Yanıt Tarzı (ERS) Düzeltme Yöntemlerinin PISA Verileri Üzerindeki Etkisi: Simülasyon ve Uygulama
+**Purpose:** Araştırma projesi - ERS düzeltme yöntemlerinin (Z-skor, kovaryans, ML-MNRM) PISA gibi büyük ölçekli değerlendirmelerdeki ülke ortalamaları ve sıralamaları üzerindeki etkilerini simülasyon ve gerçek veri analizi ile karşılaştırmak
+**Status:** Proje kurulum aşaması
+**Language:** R (primary), possibly Python for simulations
 
-This document serves as a comprehensive guide for AI assistants (like Claude) working on this codebase. It contains essential information about the project structure, conventions, and workflows to follow.
+This document serves as a comprehensive guide for AI assistants (like Claude) working on this research project. It contains essential information about the project structure, statistical methods, conventions, and workflows to follow.
 
 ---
 
@@ -14,36 +16,83 @@ This document serves as a comprehensive guide for AI assistants (like Claude) wo
 
 ```
 ERS/
-├── .git/                    # Git version control
-├── CLAUDE.md               # This file - AI assistant guide
-└── [Additional structure TBD]
+├── .git/                           # Git version control
+├── CLAUDE.md                       # This file - AI assistant guide
+├── README.md                       # Project overview (Turkish & English)
+├── data/                           # Data files (not committed if large)
+│   ├── raw/                        # Raw PISA data files
+│   ├── processed/                  # Processed/cleaned data
+│   └── simulated/                  # Simulated data from studies
+├── R/                              # R source code
+│   ├── simulation/                 # Simulation study scripts
+│   │   ├── 01_data_generation.R    # ML-MNRM data generation
+│   │   ├── 02_correction_methods.R # ERS correction implementations
+│   │   └── 03_evaluation.R         # Bias and RMSE calculations
+│   ├── analysis/                   # PISA real data analysis
+│   │   ├── 01_data_preparation.R   # PISA data loading and cleaning
+│   │   ├── 02_ers_measurement.R    # Greenleaf ERS index calculation
+│   │   ├── 03_model0_baseline.R    # Model 0: Raw scores
+│   │   ├── 04_model1_zscore.R      # Model 1: Z-score standardization
+│   │   ├── 05_model2_covariate.R   # Model 2: Covariate control
+│   │   └── 06_model3_mlmnrm.R      # Model 3: ML-MNRM
+│   ├── functions/                  # Reusable utility functions
+│   │   ├── ers_indices.R           # ERS calculation functions
+│   │   ├── correction_methods.R    # Correction method implementations
+│   │   └── evaluation_metrics.R    # Bias, RMSE, correlation functions
+│   └── visualization/              # Plotting and visualization scripts
+│       ├── simulation_plots.R      # Simulation results plots
+│       └── country_comparisons.R   # Country ranking visualizations
+├── output/                         # Analysis outputs
+│   ├── figures/                    # Generated plots and charts
+│   ├── tables/                     # Result tables (CSV, LaTeX)
+│   └── reports/                    # Generated reports
+├── docs/                           # Documentation
+│   ├── methodology.md              # Detailed methodology notes
+│   ├── references.bib              # Bibliography
+│   └── notes/                      # Research notes and decisions
+├── tests/                          # Unit tests for R functions
+└── renv/                           # R package management (if using renv)
 ```
 
-### Directory Organization
+### Directory Organization Principles
 
-**As this is a new repository, the structure will evolve. When adding directories, follow these conventions:**
-
-- `/src` - Source code
-- `/tests` or `/test` - Test files
-- `/docs` - Documentation
-- `/config` - Configuration files
-- `/scripts` - Utility scripts
-- `/public` or `/static` - Static assets (if web application)
-- `/lib` or `/utils` - Shared utilities and libraries
+- **R/** - All R source code, organized by study phase (simulation vs. analysis)
+- **data/** - Data files organized by type (raw, processed, simulated)
+- **output/** - Generated outputs (figures, tables, reports)
+- **docs/** - Documentation and research notes
+- **tests/** - Unit tests for custom R functions
 
 ---
 
 ## 🔧 Technology Stack
 
-**To be determined based on initial commits. Update this section when technologies are chosen.**
+### Core Technologies
 
-Potential categories to document:
-- **Language(s):**
-- **Framework(s):**
-- **Database:**
-- **Build Tools:**
-- **Testing:**
-- **Deployment:**
+- **Primary Language:** R (version 4.0+)
+- **Statistical Packages:**
+  - `mirt` - Multidimensional Item Response Theory models
+  - `TAM` - Test Analysis Modules (for ML-MNRM)
+  - `lavaan` - Latent Variable Analysis (for SEM/covariate models)
+  - `tidyverse` - Data manipulation and visualization
+  - `psych` - Psychological scales and ERS indices
+
+### Data Analysis
+- **PISA Data:** OECD PISA 2018/2022 student questionnaire data
+- **Data Format:** SPSS (.sav) or CSV, converted to R data frames
+- **Sample Size:** Multi-country datasets (5+ countries)
+
+### Simulation Tools
+- **ML-MNRM Implementation:** TAM package or custom JAGS/Stan models
+- **Replication:** 1000 iterations per condition
+- **Random Seed Management:** For reproducibility
+
+### Dependency Management
+- **renv** (recommended) - R environment management for reproducibility
+- Alternative: Document required packages in `DESCRIPTION` or `packages.R`
+
+### Version Control
+- **Git** - Primary version control
+- **Large File Storage:** Git LFS for large PISA datasets (if needed)
 
 ---
 
@@ -141,65 +190,210 @@ Detailed explanation if needed
 
 ## 📝 Common Development Tasks
 
-### Starting a New Feature
+### Setting Up R Environment
 
-```bash
-# Create and switch to feature branch
-git checkout -b feature/your-feature-name
+```r
+# Install required packages
+install.packages(c("tidyverse", "mirt", "TAM", "lavaan", "psych", "here"))
 
-# Make your changes
-# ... code, test, commit ...
+# If using renv for reproducibility
+renv::init()
+renv::snapshot()  # After installing all packages
+renv::restore()   # To restore environment
+```
 
-# Push to remote
-git push -u origin feature/your-feature-name
+### Running Simulation Study
+
+```r
+# Navigate to project root
+setwd("/path/to/ERS")
+
+# Run simulation scripts in order
+source("R/simulation/01_data_generation.R")
+source("R/simulation/02_correction_methods.R")
+source("R/simulation/03_evaluation.R")
+
+# Or run all at once
+source("R/run_simulation_study.R")
+```
+
+### Running PISA Analysis
+
+```r
+# Run PISA analysis scripts in order
+source("R/analysis/01_data_preparation.R")
+source("R/analysis/02_ers_measurement.R")
+source("R/analysis/03_model0_baseline.R")
+source("R/analysis/04_model1_zscore.R")
+source("R/analysis/05_model2_covariate.R")
+source("R/analysis/06_model3_mlmnrm.R")
+
+# Generate comparison report
+source("R/analysis/07_model_comparison.R")
+```
+
+### Generating Outputs
+
+```r
+# Generate all figures
+source("R/visualization/simulation_plots.R")
+source("R/visualization/country_comparisons.R")
+
+# Export tables
+source("R/export_tables.R")
 ```
 
 ### Running Tests
 
-```bash
-# Update this section when test framework is established
-# Example: npm test, pytest, go test, etc.
+```r
+# Run unit tests (if using testthat)
+testthat::test_dir("tests/")
+
+# Or run specific test file
+testthat::test_file("tests/test_ers_indices.R")
 ```
 
-### Building the Project
+### Starting a New Analysis Component
 
 ```bash
-# Update this section when build process is established
-# Example: npm run build, make, go build, etc.
-```
+# Create and switch to feature branch
+git checkout -b feature/new-analysis-component
 
-### Running Locally
+# Create new R script
+touch R/analysis/08_new_component.R
 
-```bash
-# Update this section when development server is established
-# Example: npm start, python app.py, etc.
+# Make your changes, test, commit
+git add R/analysis/08_new_component.R
+git commit -m "feat: Add new analysis component"
+
+# Push to remote
+git push -u origin feature/new-analysis-component
 ```
 
 ---
 
 ## 🎯 Project-Specific Guidelines
 
-### Naming Conventions
+### R Coding Conventions
 
-**Update as patterns emerge:**
-- **Variables:** camelCase or snake_case (TBD)
-- **Functions:** camelCase or snake_case (TBD)
-- **Classes:** PascalCase
-- **Constants:** UPPER_SNAKE_CASE
-- **Files:** kebab-case or snake_case (TBD)
+**Naming Conventions:**
+- **Variables:** `snake_case` (e.g., `ers_index`, `country_means`)
+- **Functions:** `snake_case` with verb prefixes (e.g., `calculate_ers_index()`, `apply_zscore_correction()`)
+- **Constants:** `UPPER_SNAKE_CASE` (e.g., `N_REPLICATIONS = 1000`)
+- **Files:** `snake_case.R` with number prefixes for ordered scripts (e.g., `01_data_generation.R`)
+- **Data frames:** `snake_case` (e.g., `pisa_data`, `simulation_results`)
 
-### Code Style
+**R Code Style (tidyverse style guide):**
+- **Indentation:** 2 spaces (no tabs)
+- **Line length:** Maximum 80 characters
+- **Assignment:** Use `<-` not `=` for assignment
+- **Quotes:** Use double quotes `"` for strings
+- **Pipes:** Use `%>%` (magrittr) or `|>` (base R 4.1+) for data pipelines
+- **Spacing:** Space after commas, around operators
 
-**Will be defined based on chosen language/framework:**
-- Indentation: [spaces/tabs] [number]
-- Line length: [max characters]
-- Quotes: [single/double]
-- Semicolons: [required/optional]
+**Example:**
+```r
+# Good
+calculate_ers_index <- function(data, items) {
+  ers_scores <- data %>%
+    select(all_of(items)) %>%
+    rowwise() %>%
+    mutate(
+      ers_index = sd(c_across(everything()), na.rm = TRUE)
+    ) %>%
+    pull(ers_index)
 
-Consider using:
-- Linter configuration (ESLint, Pylint, etc.)
-- Formatter (Prettier, Black, gofmt, etc.)
-- EditorConfig for consistency
+  return(ers_scores)
+}
+
+# Bad
+calculateERSIndex<-function(data,items){ers_scores=data%>%select(all_of(items))%>%rowwise()%>%mutate(ers_index=sd(c_across(everything()),na.rm=TRUE))%>%pull(ers_index);return(ers_scores)}
+```
+
+### Statistical Analysis Guidelines
+
+1. **Reproducibility:**
+   - Always set random seeds: `set.seed(12345)`
+   - Document package versions
+   - Use `sessionInfo()` in output
+
+2. **ERS Measurement:**
+   - Use Greenleaf ERS Index as standard
+   - Document alternative indices if tested
+   - Handle missing data appropriately
+
+3. **Model Naming:**
+   - Model 0: `model0_baseline` or `raw_scores`
+   - Model 1: `model1_zscore` or `zscore_corrected`
+   - Model 2: `model2_covariate` or `ers_controlled`
+   - Model 3: `model3_mlmnrm` or `irt_corrected`
+
+4. **Evaluation Metrics:**
+   - Calculate bias: `bias = mean(estimate - true_value)`
+   - Calculate RMSE: `rmse = sqrt(mean((estimate - true_value)^2))`
+   - Use rank-order correlation for country rankings
+
+### Code Organization
+
+**Script Structure:**
+```r
+# ============================================================================
+# Script: 01_data_generation.R
+# Purpose: Generate simulated data using ML-MNRM
+# Author: [Name]
+# Date: 2025-11-28
+# ============================================================================
+
+# 1. Setup ----
+library(tidyverse)
+library(TAM)
+
+set.seed(12345)
+
+# 2. Parameters ----
+N_COUNTRIES <- 2
+N_STUDENTS_PER_COUNTRY <- 500
+N_ITEMS <- 10
+
+# 3. Functions ----
+generate_mlmnrm_data <- function(...) {
+  # Function implementation
+}
+
+# 4. Main Analysis ----
+# Analysis code here
+
+# 5. Save Results ----
+saveRDS(results, "data/simulated/simulation_data.rds")
+```
+
+### Documentation Standards
+
+1. **Function Documentation:**
+   - Use roxygen2 style comments
+   - Document parameters, return values, examples
+
+```r
+#' Calculate Greenleaf ERS Index
+#'
+#' Computes the Greenleaf Extreme Response Style index for each respondent
+#' based on their standard deviation across Likert items.
+#'
+#' @param data Data frame containing response data
+#' @param items Character vector of item column names
+#' @return Numeric vector of ERS index values
+#' @references Greenleaf (1992)
+#' @examples
+#' ers_scores <- calculate_greenleaf_ers(pisa_data, c("item1", "item2"))
+calculate_greenleaf_ers <- function(data, items) {
+  # Implementation
+}
+```
+
+2. **Inline Comments:**
+   - Explain "why", not "what"
+   - Use `# ----` for section breaks
+   - Comment complex statistical procedures
 
 ---
 
@@ -208,16 +402,38 @@ Consider using:
 ### Before Making Changes
 
 1. **Read the relevant files first** - Never propose changes to code you haven't read
-2. **Understand the context** - Know how your changes fit into the larger system
-3. **Check for existing patterns** - Follow established conventions in the codebase
-4. **Search for related code** - Ensure consistency across similar functionality
+2. **Understand the statistical context** - Know the methodology and how changes affect statistical validity
+3. **Check for existing patterns** - Follow established R coding conventions
+4. **Search for related code** - Ensure consistency across simulation and analysis scripts
 
-### When Implementing Features
+### When Implementing Statistical Analysis
 
-1. **Avoid over-engineering** - Keep solutions simple and focused
-2. **Don't add unrequested features** - Stick to the requirements
-3. **Minimal necessary changes** - Don't refactor unrelated code
-4. **Security first** - Watch for vulnerabilities (XSS, SQL injection, etc.)
+1. **Avoid over-engineering** - Keep statistical methods simple and interpretable
+2. **Don't add unrequested features** - Stick to the four models (0-3) unless explicitly asked
+3. **Preserve reproducibility** - Never remove or change random seeds without updating documentation
+4. **Statistical validity first** - Ensure corrections are methodologically sound
+
+### R-Specific Considerations
+
+1. **Package Dependencies:**
+   - Check if packages are already loaded before adding new `library()` calls
+   - Document any new package dependencies
+   - Consider computational efficiency for large PISA datasets
+
+2. **Data Handling:**
+   - PISA data is large - use efficient data.table or tidyverse operations
+   - Always check for missing values in survey data
+   - Respect PISA sampling weights if required
+
+3. **Model Estimation:**
+   - ML-MNRM models can be computationally intensive
+   - Consider running complex models on subsets first
+   - Save intermediate results to avoid re-running lengthy computations
+
+4. **Output Management:**
+   - Always save results to appropriate directories (`output/`)
+   - Use descriptive file names with dates: `simulation_results_2025-11-28.rds`
+   - Export both R objects (.rds) and readable formats (.csv, .txt)
 
 ### Git Operations Best Practices
 
@@ -238,20 +454,30 @@ Consider using:
 
 ## 📚 Resources and Documentation
 
-### External Documentation Links
-[Add relevant links as project develops]
+### Key References
 
-- Project Management: [Link TBD]
-- API Documentation: [Link TBD]
-- Design System: [Link TBD]
-- Deployment Docs: [Link TBD]
+**Primary Literature:**
+1. Ulitzsch et al. (2023) - ERS in PISA 2015 questionnaire data
+2. Lu & Bolt (2015) - ML-MNRM for ERS in PISA attitude-achievement paradox
+3. Schoenmakers et al. (2023) - Model choice for ERS correction
+4. Greenleaf (1992) - ERS index methodology
+
+**PISA Resources:**
+- [PISA Data Download](https://www.oecd.org/pisa/data/)
+- [PISA 2018 Technical Report](https://www.oecd.org/pisa/data/pisa2018technicalreport/)
+- [PISA Questionnaire Framework](https://www.oecd.org/pisa/pisaproducts/)
+
+**R Package Documentation:**
+- [mirt package](https://cran.r-project.org/web/packages/mirt/)
+- [TAM package](https://cran.r-project.org/web/packages/TAM/)
+- [lavaan package](https://lavaan.ugent.be/)
 
 ### Internal Documentation
-[Add as documentation is created]
 
-- Architecture Decision Records (ADRs): [Location TBD]
-- API Specifications: [Location TBD]
-- Database Schema: [Location TBD]
+- **Methodology:** `docs/methodology.md` - Detailed statistical methods
+- **Bibliography:** `docs/references.bib` - Full reference list
+- **Research Notes:** `docs/notes/` - Decision logs and analysis notes
+- **Code Documentation:** Inline roxygen2 comments in R functions
 
 ---
 
@@ -264,39 +490,58 @@ This document should be updated whenever:
 - Project structure evolves significantly
 
 **Last Updated:** 2025-11-28
-**Version:** 1.0.0 (Initial)
+**Version:** 2.0.0 (Updated for ERS Research Project)
 
 ---
 
 ## 🎓 Quick Reference for Common Scenarios
 
-### Scenario 1: User asks to add a new feature
-1. Read relevant existing code first
-2. Plan the implementation (use TodoWrite if complex)
-3. Make minimal necessary changes
-4. Test the changes
-5. Commit with clear message
-6. Push to feature branch
+### Scenario 1: Adapting R code from another study
+1. Read the provided R code thoroughly
+2. Identify which components map to this study (simulation vs. PISA analysis)
+3. Adapt variable names to match our conventions (snake_case)
+4. Update file paths to match our directory structure
+5. Preserve statistical methods but modernize R syntax (tidyverse)
+6. Document changes and rationale
+7. Test adapted code with sample data
+8. Commit with descriptive message
 
-### Scenario 2: User reports a bug
-1. Locate the problematic code
-2. Understand the root cause
-3. Fix the issue without over-refactoring
-4. Add tests if appropriate
-5. Commit and push
+### Scenario 2: Implementing a new ERS correction method
+1. Review literature reference for the method
+2. Check if similar methods exist in `R/functions/correction_methods.R`
+3. Implement as a standalone function with roxygen2 documentation
+4. Add to both simulation and PISA analysis pipelines
+5. Create unit tests in `tests/`
+6. Update comparison scripts to include new method
+7. Commit and push
 
-### Scenario 3: User asks about codebase
-1. Use Explore agent for broad questions
-2. Use Grep/Glob for specific searches
-3. Read relevant files
-4. Provide clear, concise explanation with file references
+### Scenario 3: Debugging simulation or model estimation
+1. Check random seed settings for reproducibility
+2. Verify input data structure and dimensions
+3. Test with smaller sample size first
+4. Check for convergence issues in IRT models
+5. Review error messages for package-specific issues
+6. Document solution in `docs/notes/`
+7. Fix and commit
 
-### Scenario 4: Creating a Pull Request
-1. Ensure all changes are committed
-2. Push to remote branch
-3. Review git diff to understand full scope
-4. Create PR with summary of all commits (not just latest)
-5. Include test plan in PR description
+### Scenario 4: Generating results for manuscript
+1. Ensure all analysis scripts have run successfully
+2. Run visualization scripts to generate figures
+3. Export tables in both CSV and LaTeX formats
+4. Check output/ directory for all required files
+5. Generate summary report with `sessionInfo()`
+6. Commit outputs (or document how to reproduce)
+7. Create tagged release for manuscript version
+
+### Scenario 5: User provides R code to adapt
+1. Save provided code to appropriate location (e.g., `data/external_code/`)
+2. Read and analyze the code structure
+3. Identify reusable functions vs. study-specific code
+4. Map to our project structure (simulation/ vs. analysis/)
+5. Refactor to match our conventions
+6. Test thoroughly
+7. Document adaptations in commit messages
+8. Remove original external code after successful adaptation
 
 ---
 
