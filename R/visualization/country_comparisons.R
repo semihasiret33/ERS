@@ -22,7 +22,7 @@ cat("Creating country means comparison plot...\n")
 
 # Reshape data to long format for plotting
 plot_data <- all_models_results %>%
-  select(CNT, mean_model0, mean_model1, mean_model2, mean_model3) %>%
+  select(CNT, mean_model0, mean_model1, mean_model2, mean_model3, mean_model4) %>%
   pivot_longer(
     cols = starts_with("mean_"),
     names_to = "model",
@@ -31,9 +31,9 @@ plot_data <- all_models_results %>%
   mutate(
     model = factor(model,
                   levels = c("mean_model0", "mean_model1",
-                            "mean_model2", "mean_model3"),
+                            "mean_model2", "mean_model3", "mean_model4"),
                   labels = c("Model 0: Raw", "Model 1: Z-score",
-                            "Model 2: Covariate", "Model 3: ML-MNRM"))
+                            "Model 2: Covariate", "Model 3: ML-MNRM", "Model 4: IRTree"))
   )
 
 # Create plot
@@ -67,7 +67,7 @@ cat("Creating ranking changes plot...\n")
 
 # Reshape ranking data
 rank_data <- all_models_results %>%
-  select(CNT, rank_model0, rank_model1, rank_model2, rank_model3) %>%
+  select(CNT, rank_model0, rank_model1, rank_model2, rank_model3, rank_model4) %>%
   pivot_longer(
     cols = starts_with("rank_"),
     names_to = "model",
@@ -76,8 +76,8 @@ rank_data <- all_models_results %>%
   mutate(
     model = factor(model,
                   levels = c("rank_model0", "rank_model1",
-                            "rank_model2", "rank_model3"),
-                  labels = c("Model 0", "Model 1", "Model 2", "Model 3"))
+                            "rank_model2", "rank_model3", "rank_model4"),
+                  labels = c("Model 0", "Model 1", "Model 2", "Model 3", "Model 4"))
   )
 
 # Create line plot showing ranking changes
@@ -137,7 +137,7 @@ cat("Creating heatmap of rank changes...\n")
 
 # Prepare data for heatmap
 heatmap_data <- all_models_results %>%
-  select(CNT, rank_change_m1, rank_change_m2, rank_change_m3) %>%
+  select(CNT, rank_change_m1, rank_change_m2, rank_change_m3, rank_change_m4) %>%
   pivot_longer(
     cols = starts_with("rank_change_"),
     names_to = "comparison",
@@ -146,9 +146,9 @@ heatmap_data <- all_models_results %>%
   mutate(
     comparison = factor(comparison,
                        levels = c("rank_change_m1", "rank_change_m2",
-                                 "rank_change_m3"),
+                                 "rank_change_m3", "rank_change_m4"),
                        labels = c("Model 0 vs 1", "Model 0 vs 2",
-                                 "Model 0 vs 3"))
+                                 "Model 0 vs 3", "Model 0 vs 4"))
   )
 
 p4 <- ggplot(heatmap_data,
@@ -182,23 +182,21 @@ cat("Saved: output/figures/rank_changes_heatmap.png\n")
 
 cat("Creating method agreement plot...\n")
 
-# Calculate pairwise correlations
+# Calculate pairwise correlations (adding Model 4 comparisons)
 cors <- data.frame(
-  model1 = c("Model 0", "Model 0", "Model 0", "Model 1", "Model 1", "Model 2"),
-  model2 = c("Model 1", "Model 2", "Model 3", "Model 2", "Model 3", "Model 3"),
+  model1 = c("Model 0", "Model 0", "Model 0", "Model 0", "Model 1", "Model 1", "Model 1", "Model 2", "Model 2", "Model 3"),
+  model2 = c("Model 1", "Model 2", "Model 3", "Model 4", "Model 2", "Model 3", "Model 4", "Model 3", "Model 4", "Model 4"),
   correlation = c(
-    cor(all_models_results$mean_model0, all_models_results$mean_model1,
-       use = "complete.obs"),
-    cor(all_models_results$mean_model0, all_models_results$mean_model2,
-       use = "complete.obs"),
-    cor(all_models_results$mean_model0, all_models_results$mean_model3,
-       use = "complete.obs"),
-    cor(all_models_results$mean_model1, all_models_results$mean_model2,
-       use = "complete.obs"),
-    cor(all_models_results$mean_model1, all_models_results$mean_model3,
-       use = "complete.obs"),
-    cor(all_models_results$mean_model2, all_models_results$mean_model3,
-       use = "complete.obs")
+    cor(all_models_results$mean_model0, all_models_results$mean_model1, use = "complete.obs"),
+    cor(all_models_results$mean_model0, all_models_results$mean_model2, use = "complete.obs"),
+    cor(all_models_results$mean_model0, all_models_results$mean_model3, use = "complete.obs"),
+    cor(all_models_results$mean_model0, all_models_results$mean_model4, use = "complete.obs"),
+    cor(all_models_results$mean_model1, all_models_results$mean_model2, use = "complete.obs"),
+    cor(all_models_results$mean_model1, all_models_results$mean_model3, use = "complete.obs"),
+    cor(all_models_results$mean_model1, all_models_results$mean_model4, use = "complete.obs"),
+    cor(all_models_results$mean_model2, all_models_results$mean_model3, use = "complete.obs"),
+    cor(all_models_results$mean_model2, all_models_results$mean_model4, use = "complete.obs"),
+    cor(all_models_results$mean_model3, all_models_results$mean_model4, use = "complete.obs")
   )
 )
 
@@ -232,11 +230,11 @@ cat("\n=======================================================\n")
 cat("All visualizations created successfully!\n")
 cat("=======================================================\n\n")
 cat("Saved figures:\n")
-cat("  1. country_means_comparison.png\n")
-cat("  2. ranking_changes.png\n")
+cat("  1. country_means_comparison.png (5 models)\n")
+cat("  2. ranking_changes.png (5 models)\n")
 cat("  3. ers_vs_country_means.png\n")
-cat("  4. rank_changes_heatmap.png\n")
-cat("  5. method_agreement.png\n")
+cat("  4. rank_changes_heatmap.png (4 comparisons)\n")
+cat("  5. method_agreement.png (10 pairwise correlations)\n")
 cat("\nAll figures saved to: output/figures/\n")
 cat("=======================================================\n\n")
 

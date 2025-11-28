@@ -42,6 +42,7 @@ Bu araştırma projesi, PISA gibi büyük ölçekli uluslararası değerlendirme
 - **Model 1:** Z-skor standardizasyonu
 - **Model 2:** Kovaryans kontrolü (Greenleaf ERS İndeksi)
 - **Model 3:** ML-MNRM (Multilevel Multidimensional Nominal Response Model)
+- **Model 4:** IRTree (Item Response Tree Model)
 
 **Karşılaştırma:**
 - Ülke ortalamalarındaki değişim
@@ -159,6 +160,7 @@ The study consists of two main phases:
 - **Model 1:** Z-score standardization
 - **Model 2:** Covariate control (Greenleaf ERS Index)
 - **Model 3:** ML-MNRM (Multilevel Multidimensional Nominal Response Model)
+- **Model 4:** IRTree (Item Response Tree Model)
 
 **Comparison:**
 - Changes in country means

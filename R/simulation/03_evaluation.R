@@ -27,7 +27,7 @@ combined_data <- bind_rows(all_results, .id = "condition")
 # Create evaluation data frame
 evaluation_results <- data.frame()
 
-methods <- c("raw", "zscore", "covariate", "mnrm")
+methods <- c("raw", "zscore", "covariate", "mnrm", "irtree")
 
 for (cond in unique(combined_data$condition)) {
 
@@ -95,7 +95,7 @@ for (cond in unique(combined_data$condition)) {
   cond_data <- combined_data %>% filter(condition == cond)
 
   # Compare each method to raw scores
-  for (method in c("zscore", "covariate", "mnrm")) {
+  for (method in c("zscore", "covariate", "mnrm", "irtree")) {
 
     est_col <- paste0("mean_", method)
 

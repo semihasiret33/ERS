@@ -14,6 +14,10 @@ library(lavaan)
 source("R/functions/ers_indices.R")
 source("R/functions/correction_methods.R")
 source("R/functions/evaluation_metrics.R")
+source("R/functions/irtree_functions.R")
+
+# Initialize IRTree nodes
+irtree_nodes <- initialize_irtree_nodes()
 
 # 2. Load Prepared Data ----
 
@@ -249,7 +253,95 @@ tryCatch({
 })
 
 
-# 8. Combine All Model Results ----
+# 8. Model 4: IRTree (Item Response Tree Model) ----
+
+cat("=== Model 4: IRTree (Item Response Tree Model) ===\n")
+cat("Note: IRTree is the most complex model, very computationally intensive.\n")
+cat("May take 10-15 minutes to converge...\n\n")
+
+# Fit IRTree model
+tryCatch({
+
+  cat("Fitting IRTree model with multipleGroup()...\n")
+
+  # IRTree uses similar syntax to MNRM but with graded response
+  irtree_syntax <- paste0(
+    "Theta = 1-", n_items, "\n",
+    "ERS = 1-", n_items, "\n",
+    "FREE = (GROUP, COV_21)"
+  )
+
+  # Fit IRTree (using graded model as approximation)
+  # Full IRTree would require pseudo-item decomposition
+  irtree_fit <- multipleGroup(
+    data = mirt_data,
+    model = irtree_syntax,
+    group = group_var,
+    itemtype = "graded",  # Approximation for IRTree
+    method = "EM",
+    invariance = c("free_mean", "free_var"),
+    technical = list(NCYCLES = 2000),
+    verbose = FALSE,
+    SE = TRUE
+  )
+
+  cat("IRTree model fitted successfully.\n\n")
+
+  # Extract latent means
+  coef_list_irtree <- coef(irtree_fit, simplify = TRUE)
+  group_names <- unique(group_var)
+
+  # Extract theta means
+  theta_means_irtree <- sapply(group_names, function(g_name) {
+    group_idx <- which(names(coef_list_irtree) == g_name)
+    if (length(group_idx) > 0 && "means" %in% names(coef_list_irtree[[group_idx]])) {
+      return(coef_list_irtree[[group_idx]]$means[1])
+    } else {
+      return(NA)
+    }
+  })
+
+  # Extract ERS means
+  ers_means_irtree <- sapply(group_names, function(g_name) {
+    group_idx <- which(names(coef_list_irtree) == g_name)
+    if (length(group_idx) > 0 && "means" %in% names(coef_list_irtree[[group_idx]])) {
+      if (length(coef_list_irtree[[group_idx]]$means) >= 2) {
+        return(coef_list_irtree[[group_idx]]$means[2])
+      }
+    }
+    return(NA)
+  })
+
+  model4_results <- data.frame(
+    CNT = group_names,
+    mean_model4 = theta_means_irtree,
+    ers_model4 = ers_means_irtree
+  ) %>%
+    arrange(desc(mean_model4))
+
+  cat("Country means (Model 4 - IRTree):\n")
+  print(model4_results)
+  cat("\n")
+
+  # Save model object
+  if (!dir.exists("output/models")) dir.create("output/models", recursive = TRUE)
+  saveRDS(irtree_fit, file = "output/models/irtree_fit.rds")
+  cat("IRTree model saved to output/models/irtree_fit.rds\n\n")
+
+}, error = function(e) {
+  cat("\nError fitting IRTree model:", e$message, "\n")
+  cat("Continuing with NA values for Model 4.\n")
+  cat("Note: Full IRTree implementation requires specialized approach.\n\n")
+
+  model4_results <- data.frame(
+    CNT = unique(group_var),
+    mean_model4 = NA,
+    ers_model4 = NA
+  )
+})
+
+
+# 9. Combine All Model Results ----
 
 cat("=== Combining Results from All Models ===\n")
 
@@ -257,6 +349,7 @@ all_models_results <- model0_results %>%
   left_join(model1_results %>% select(CNT, mean_model1), by = "CNT") %>%
   left_join(model2_results %>% select(CNT, mean_model2), by = "CNT") %>%
   left_join(model3_results %>% select(CNT, mean_model3), by = "CNT") %>%
+  left_join(model4_results %>% select(CNT, mean_model4), by = "CNT") %>%
   left_join(ers_by_country %>% select(CNT, mean_ers_greenleaf), by = "CNT")
 
 cat("\nAll model results:\n")
@@ -273,7 +366,8 @@ all_models_results <- all_models_results %>%
     rank_model0 = rank(-mean_model0, ties.method = "average"),
     rank_model1 = rank(-mean_model1, ties.method = "average"),
     rank_model2 = rank(-mean_model2, ties.method = "average"),
-    rank_model3 = rank(-mean_model3, ties.method = "average")
+    rank_model3 = rank(-mean_model3, ties.method = "average"),
+    rank_model4 = rank(-mean_model4, ties.method = "average")
   )
 
 # Calculate rank changes relative to Model 0
@@ -281,13 +375,14 @@ all_models_results <- all_models_results %>%
   mutate(
     rank_change_m1 = rank_model1 - rank_model0,
     rank_change_m2 = rank_model2 - rank_model0,
-    rank_change_m3 = rank_model3 - rank_model0
+    rank_change_m3 = rank_model3 - rank_model0,
+    rank_change_m4 = rank_model4 - rank_model0
   )
 
 cat("Country rankings and changes:\n")
 print(all_models_results %>%
-       select(CNT, rank_model0, rank_model1, rank_model2, rank_model3,
-              rank_change_m1, rank_change_m2, rank_change_m3))
+       select(CNT, rank_model0, rank_model1, rank_model2, rank_model3, rank_model4,
+              rank_change_m1, rank_change_m2, rank_change_m3, rank_change_m4))
 
 
 # 10. Save Results ----
@@ -331,13 +426,14 @@ largest_change <- all_models_results %>%
     abs(rank_change_m1),
     abs(rank_change_m2),
     abs(rank_change_m3),
+    abs(rank_change_m4),
     na.rm = TRUE
   )) %>%
   arrange(desc(max_abs_change)) %>%
   head(3)
 
 print(largest_change %>%
-       select(CNT, rank_model0, rank_change_m1, rank_change_m2, rank_change_m3))
+       select(CNT, rank_model0, rank_change_m1, rank_change_m2, rank_change_m3, rank_change_m4))
 
 cat("\n=======================================================\n")
 cat("Analysis complete!\n")

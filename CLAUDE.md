@@ -4,7 +4,7 @@
 
 **Repository Name:** ERS (Extreme Response Style)
 **Full Title:** Aşırı Yanıt Tarzı (ERS) Düzeltme Yöntemlerinin PISA Verileri Üzerindeki Etkisi: Simülasyon ve Uygulama
-**Purpose:** Araştırma projesi - ERS düzeltme yöntemlerinin (Z-skor, kovaryans, ML-MNRM) PISA gibi büyük ölçekli değerlendirmelerdeki ülke ortalamaları ve sıralamaları üzerindeki etkilerini simülasyon ve gerçek veri analizi ile karşılaştırmak
+**Purpose:** Araştırma projesi - ERS düzeltme yöntemlerinin (Z-skor, kovaryans, ML-MNRM, IRTree) PISA gibi büyük ölçekli değerlendirmelerdeki ülke ortalamaları ve sıralamaları üzerindeki etkilerini simülasyon ve gerçek veri analizi ile karşılaştırmak
 **Status:** Proje kurulum aşaması
 **Language:** R (primary), possibly Python for simulations
 
@@ -30,15 +30,12 @@ ERS/
 │   │   └── 03_evaluation.R         # Bias and RMSE calculations
 │   ├── analysis/                   # PISA real data analysis
 │   │   ├── 01_data_preparation.R   # PISA data loading and cleaning
-│   │   ├── 02_ers_measurement.R    # Greenleaf ERS index calculation
-│   │   ├── 03_model0_baseline.R    # Model 0: Raw scores
-│   │   ├── 04_model1_zscore.R      # Model 1: Z-score standardization
-│   │   ├── 05_model2_covariate.R   # Model 2: Covariate control
-│   │   └── 06_model3_mlmnrm.R      # Model 3: ML-MNRM
+│   │   └── 02_ers_measurement_and_models.R  # ERS indices + Models 0-4
 │   ├── functions/                  # Reusable utility functions
 │   │   ├── ers_indices.R           # ERS calculation functions
 │   │   ├── correction_methods.R    # Correction method implementations
-│   │   └── evaluation_metrics.R    # Bias, RMSE, correlation functions
+│   │   ├── evaluation_metrics.R    # Bias, RMSE, correlation functions
+│   │   └── irtree_functions.R      # IRTree model custom functions
 │   └── visualization/              # Plotting and visualization scripts
 │       ├── simulation_plots.R      # Simulation results plots
 │       └── country_comparisons.R   # Country ranking visualizations
@@ -222,14 +219,10 @@ source("R/run_simulation_study.R")
 ```r
 # Run PISA analysis scripts in order
 source("R/analysis/01_data_preparation.R")
-source("R/analysis/02_ers_measurement.R")
-source("R/analysis/03_model0_baseline.R")
-source("R/analysis/04_model1_zscore.R")
-source("R/analysis/05_model2_covariate.R")
-source("R/analysis/06_model3_mlmnrm.R")
+source("R/analysis/02_ers_measurement_and_models.R")  # All 5 models (0-4)
 
-# Generate comparison report
-source("R/analysis/07_model_comparison.R")
+# Generate visualizations
+source("R/visualization/country_comparisons.R")
 ```
 
 ### Generating Outputs
@@ -327,6 +320,7 @@ calculateERSIndex<-function(data,items){ers_scores=data%>%select(all_of(items))%
    - Model 1: `model1_zscore` or `zscore_corrected`
    - Model 2: `model2_covariate` or `ers_controlled`
    - Model 3: `model3_mlmnrm` or `irt_corrected`
+   - Model 4: `model4_irtree` or `irtree_corrected`
 
 4. **Evaluation Metrics:**
    - Calculate bias: `bias = mean(estimate - true_value)`
