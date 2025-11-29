@@ -1,263 +1,279 @@
 # ============================================================================
 # Script: 01_data_generation.R
-# Purpose: Generate simulated data using MNRM for different ERS conditions
-# Author: Adapted for ERS Research Project
-# Date: 2025-11-28
+# Purpose: Generate simulation data for all conditions
+# Author: ERS Research Project
+# Date: 2025-11-29
+# ============================================================================
+#
+# This script generates simulated data for all 12 simulation conditions:
+# - 4 ERS conditions (low, medium, high_diff, equal)
+# - 3 Sample sizes (N=100, N=500, N=1000)
+# - 500 replications per condition
+#
+# Total: 12 conditions × 500 replications = 6,000 datasets
+#
+# Data generation uses MNRM-Falk approach (Falk & Cai, 2016) with:
+# - Alpha = 1.5 for both dimensions
+# - Varying item difficulties (m values)
+# - Two threshold sets (average vs difficult)
 # ============================================================================
 
 # 1. Setup ----
+library(MASS)
 library(tidyverse)
-library(mirt)
 
-set.seed(12345)  # For reproducibility
+# Source data generation functions
+source("R/simulation/00_mnrm_falk_generator.R")
 
-# 2. Parameters ----
+set.seed(12345)
 
-# Simulation conditions
-N_REPLICATIONS <- 1000  # Number of simulation replications
-N_COUNTRIES <- 2        # Number of countries/groups
-N_PER_COUNTRY <- 500    # Sample size per country
-N_ITEMS <- 10           # Number of Likert items
-N_CATEGORIES <- 4       # Number of response categories (1-4)
+cat("\n")
+cat("=======================================================\n")
+cat("  ERS SIMULATION DATA GENERATION                      \n")
+cat("=======================================================\n")
+cat("\n")
 
-# Item parameters
-ITEM_ALPHA <- c(1, 1)        # Discrimination parameters for content and ERS
-ITEM_THRESHOLDS <- c(-1, 0, 1)  # Threshold parameters
 
-# ERS conditions to simulate
+# 2. Define Simulation Parameters ----
+
+cat("Simulation parameters:\n")
+cat("  - Number of items: 10\n")
+cat("  - Categories: 4 (Strongly Disagree to Strongly Agree)\n")
+cat("  - Alpha (discrimination): 1.5 for both theta and ERS\n")
+cat("  - Thresholds: [-1, 0, 1] (average difficulty)\n")
+cat("  - Replications per condition: 500\n")
+cat("  - Sample sizes: 100, 500, 1000\n")
+cat("  - ERS conditions: 4\n")
+cat("  - Total conditions: 12\n")
+cat("  - Total datasets: 6,000\n")
+cat("\n")
+
+# Simulation parameters
+N_ITEMS <- 10
+CATEGORIES <- 4
+ALPHA <- c(1.5, 1.5)
+THRESHOLDS_AVERAGE <- c(-1, 0, 1)
+N_REPLICATIONS <- 500
+SAMPLE_SIZES <- c(100, 500, 1000)
+
+
+# 3. Define ERS Conditions ----
+
+cat("ERS Conditions:\n")
+cat("\n")
+
+# Condition 1: Low ERS (both groups low, no difference)
+cat("  1. low_ers:\n")
+cat("     - Group 1: theta~N(0,1), ERS~N(0,1)\n")
+cat("     - Group 2: theta~N(0,1), ERS~N(0,1)\n")
+cat("     - Purpose: Baseline with minimal ERS, no group difference\n")
+cat("\n")
+
+low_ers <- data.frame(
+  theta_mean = c(0, 0),
+  theta_sd = c(1, 1),
+  ers_mean = c(0, 0),
+  ers_sd = c(1, 1)
+)
+
+# Condition 2: Medium ERS (group difference of 0.5 SD)
+cat("  2. medium_ers:\n")
+cat("     - Group 1: theta~N(0,1), ERS~N(0,1)\n")
+cat("     - Group 2: theta~N(0,1), ERS~N(0.5,1)\n")
+cat("     - Purpose: Moderate ERS difference between groups\n")
+cat("\n")
+
+medium_ers <- data.frame(
+  theta_mean = c(0, 0),
+  theta_sd = c(1, 1),
+  ers_mean = c(0, 0.5),
+  ers_sd = c(1, 1)
+)
+
+# Condition 3: High ERS difference (1 SD difference)
+cat("  3. high_ers_diff:\n")
+cat("     - Group 1: theta~N(0,1), ERS~N(0,1)\n")
+cat("     - Group 2: theta~N(0,1), ERS~N(1.0,1)\n")
+cat("     - Purpose: Large ERS difference, theta equal\n")
+cat("\n")
+
+high_ers_diff <- data.frame(
+  theta_mean = c(0, 0),
+  theta_sd = c(1, 1),
+  ers_mean = c(0, 1.0),
+  ers_sd = c(1, 1)
+)
+
+# Condition 4: Equal ERS, different theta
+cat("  4. equal_ers:\n")
+cat("     - Group 1: theta~N(0,1), ERS~N(0.5,1)\n")
+cat("     - Group 2: theta~N(0.3,1), ERS~N(0.5,1)\n")
+cat("     - Purpose: ERS equal, theta different (paradox scenario)\n")
+cat("\n")
+
+equal_ers <- data.frame(
+  theta_mean = c(0, 0.3),
+  theta_sd = c(1, 1),
+  ers_mean = c(0.5, 0.5),
+  ers_sd = c(1, 1)
+)
+
+# Combine into list
 ers_conditions <- list(
-  low_ers = data.frame(
-    country = c("A", "B"),
-    theta_mean = c(0, 0),
-    theta_sd = c(1, 1),
-    ers_mean = c(0, 0),      # Both countries low ERS
-    ers_sd = c(0.5, 0.5)
-  ),
-
-  medium_ers = data.frame(
-    country = c("A", "B"),
-    theta_mean = c(0, 0),
-    theta_sd = c(1, 1),
-    ers_mean = c(0, 0.5),    # Country B medium ERS
-    ers_sd = c(0.5, 0.75)
-  ),
-
-  high_ers_diff = data.frame(
-    country = c("A", "B"),
-    theta_mean = c(0, 0),      # Same true theta
-    theta_sd = c(1, 1),
-    ers_mean = c(0, 1.0),      # Country B high ERS
-    ers_sd = c(0.5, 1.0)
-  ),
-
-  equal_ers = data.frame(
-    country = c("A", "B"),
-    theta_mean = c(0, 0.3),    # Different true theta
-    theta_sd = c(1, 1),
-    ers_mean = c(0.5, 0.5),    # Equal ERS
-    ers_sd = c(0.75, 0.75)
-  )
+  low_ers = low_ers,
+  medium_ers = medium_ers,
+  high_ers_diff = high_ers_diff,
+  equal_ers = equal_ers
 )
 
 
-# 3. Functions ----
+# 4. Generate All Conditions ----
 
-#' Generate MNRM Data for Multiple Countries
-#'
-#' Generates Likert response data under the MNRM (Falk & Cai, 2016) model
-#' with separate content and ERS dimensions
-#'
-#' @param theta_df Data frame with columns: country, theta_mean, theta_sd,
-#'   ers_mean, ers_sd
-#' @param n_per_country Sample size per country
-#' @param n_items Number of items
-#' @param alpha Item discrimination parameters (length 2: content, ERS)
-#' @param thresholds Item threshold parameters
-#' @param categories Number of response categories
-#' @return List containing: data (response matrix), true_theta (latent traits),
-#'   country (group membership), true_country_means
-generate_mnrm_data <- function(theta_df, n_per_country, n_items,
-                              alpha = c(1, 1),
-                              thresholds = c(-1, 0, 1),
-                              categories = 4) {
+cat("=======================================================\n")
+cat("  Starting Data Generation                            \n")
+cat("=======================================================\n")
+cat("\n")
 
-  n_countries <- nrow(theta_df)
-  total_n <- n_per_country * n_countries
+all_datasets <- list()
+start_time_total <- Sys.time()
 
-  # Generate s matrix (scoring matrix)
-  # Content dimension: 0, 1, 2, 3 (linear)
-  s_content <- matrix(0:(categories - 1), nrow = 1)
+for (ers_name in names(ers_conditions)) {
+  for (n_size in SAMPLE_SIZES) {
 
-  # ERS dimension: 1, 0, 0, 1 (extreme categories)
-  s_ers <- matrix(c(1, 0, 0, 1), nrow = 1)
+    condition_name <- paste0(ers_name, "_N", n_size)
 
-  # Combine into single scoring matrix
-  s_matrix <- rbind(s_content, s_ers)
+    cat("\n")
+    cat("--- Condition:", condition_name, "---\n")
+    cat("  ERS parameters:", ers_name, "\n")
+    cat("  Sample size per group:", n_size, "\n")
+    cat("  Generating", N_REPLICATIONS, "replications...\n")
 
-  # Initialize storage
-  response_data <- matrix(NA, nrow = total_n, ncol = n_items)
-  true_theta <- matrix(NA, nrow = total_n, ncol = 2)
-  country_membership <- rep(NA, total_n)
+    start_time_condition <- Sys.time()
 
-  # Item difficulties (spread across range)
-  item_difficulties <- seq(-0.5, 0.5, length = n_items)
+    # Generate replications
+    replications <- vector("list", N_REPLICATIONS)
 
-  # Generate data for each country
-  for (g in 1:n_countries) {
+    for (rep in 1:N_REPLICATIONS) {
 
-    # Indices for this country
-    idx_start <- 1 + (g - 1) * n_per_country
-    idx_end <- g * n_per_country
-    idx <- idx_start:idx_end
+      # Progress indicator
+      if (rep %% 100 == 0) {
+        cat("    Replication", rep, "/", N_REPLICATIONS, "\n")
+      }
 
-    # Generate latent traits
-    theta_content <- rnorm(n_per_country,
-                          mean = theta_df$theta_mean[g],
-                          sd = theta_df$theta_sd[g])
-    theta_ers <- rnorm(n_per_country,
-                      mean = theta_df$ers_mean[g],
-                      sd = theta_df$ers_sd[g])
-
-    # Store true theta
-    true_theta[idx, ] <- cbind(theta_content, theta_ers)
-
-    # Generate responses for each item
-    for (j in 1:n_items) {
-
-      # Calculate item intercepts from thresholds
-      item_threshold <- thresholds - item_difficulties[j]
-      intercepts <- c(
-        0,
-        -item_threshold[1] * alpha[1],
-        -item_threshold[1] * alpha[1] - item_threshold[2] * alpha[1],
-        -item_threshold[1] * alpha[1] - item_threshold[2] * alpha[1] -
-          item_threshold[3] * alpha[1]
+      # Generate data
+      replications[[rep]] <- generate_mnrm_falk(
+        N = n_size,
+        n_items = N_ITEMS,
+        n_groups = 2,
+        categories = CATEGORIES,
+        alpha = ALPHA,
+        thresholds = THRESHOLDS_AVERAGE,
+        theta_df = ers_conditions[[ers_name]]
       )
-
-      # Calculate slope parameters
-      slopes <- alpha * s_matrix  # 2 x 4 matrix
-
-      # Calculate category probabilities for each person
-      # theta is n_per_country x 2, slopes is 2 x 4
-      linear_pred <- cbind(theta_content, theta_ers) %*% slopes +
-        matrix(intercepts, nrow = n_per_country, ncol = categories, byrow = TRUE)
-
-      # Apply softmax
-      exp_pred <- exp(linear_pred)
-      cat_probs <- exp_pred / rowSums(exp_pred)
-
-      # Sample responses
-      responses <- apply(cat_probs, 1, function(probs) {
-        sample(1:categories, size = 1, prob = probs)
-      })
-
-      response_data[idx, j] <- responses
     }
 
-    # Store country membership
-    country_membership[idx] <- theta_df$country[g]
+    # Store in main list
+    all_datasets[[condition_name]] <- replications
+
+    # Report timing
+    time_elapsed <- difftime(Sys.time(), start_time_condition, units = "secs")
+    cat("  ✓ Condition completed in", round(time_elapsed, 1), "seconds\n")
   }
-
-  # Add column names
-  colnames(response_data) <- paste0("Item", 1:n_items)
-  colnames(true_theta) <- c("true_theta", "true_ers")
-
-  # Calculate true country means
-  true_country_means <- theta_df %>%
-    select(country, theta_mean, ers_mean)
-
-  # Combine into data frame
-  sim_data <- data.frame(
-    country = country_membership,
-    true_theta[, "true_theta"],
-    true_theta[, "true_ers"],
-    response_data
-  )
-  colnames(sim_data)[2:3] <- c("true_theta", "true_ers")
-
-  result <- list(
-    data = sim_data,
-    true_country_means = true_country_means,
-    parameters = list(
-      alpha = alpha,
-      thresholds = thresholds,
-      item_difficulties = item_difficulties,
-      s_matrix = s_matrix
-    )
-  )
-
-  return(result)
 }
 
 
-# 4. Run Simulations ----
+# 5. Save Results ----
 
-# Create directory to save results
-if (!dir.exists("data/simulated")) {
-  dir.create("data/simulated", recursive = TRUE)
-}
+cat("\n")
+cat("=======================================================\n")
+cat("  Saving Results                                      \n")
+cat("=======================================================\n")
+cat("\n")
 
-# Generate one dataset per condition (for testing/development)
-cat("Generating simulated datasets for each ERS condition...\n")
+# Save all datasets
+saveRDS(all_datasets, file = "data/simulated/all_conditions.rds")
+cat("  ✓ All datasets saved to: data/simulated/all_conditions.rds\n")
 
-simulation_datasets <- list()
+# Create summary table
+summary_table <- data.frame(
+  condition = names(all_datasets),
+  n_replications = sapply(all_datasets, length),
+  sample_size_per_group = rep(SAMPLE_SIZES, each = 4),
+  total_sample_size = rep(SAMPLE_SIZES * 2, each = 4)
+)
 
-for (condition_name in names(ers_conditions)) {
-
-  cat("  Generating:", condition_name, "\n")
-
-  # Generate data
-  sim_result <- generate_mnrm_data(
-    theta_df = ers_conditions[[condition_name]],
-    n_per_country = N_PER_COUNTRY,
-    n_items = N_ITEMS,
-    alpha = ITEM_ALPHA,
-    thresholds = ITEM_THRESHOLDS,
-    categories = N_CATEGORIES
-  )
-
-  # Store
-  simulation_datasets[[condition_name]] <- sim_result
-
-  # Save individual condition
-  saveRDS(sim_result,
-         file = paste0("data/simulated/", condition_name, "_dataset.rds"))
-}
-
-# Save all conditions together
-saveRDS(simulation_datasets,
-       file = "data/simulated/all_conditions.rds")
-
-cat("\nSimulated datasets saved to data/simulated/\n")
+write.csv(summary_table, file = "output/tables/simulation_summary.csv", row.names = FALSE)
+cat("  ✓ Summary table saved to: output/tables/simulation_summary.csv\n")
 
 
-# 5. Preview Results ----
+# 6. Verification ----
 
-cat("\n=== Preview of Simulated Data ===\n")
-cat("\nCondition: high_ers_diff\n")
-preview <- simulation_datasets$high_ers_diff
+cat("\n")
+cat("=======================================================\n")
+cat("  Verification                                        \n")
+cat("=======================================================\n")
+cat("\n")
 
-cat("\nTrue country parameters:\n")
-print(preview$true_country_means)
+# Check one example dataset
+example_condition <- "medium_ers_N500"
+example_rep <- all_datasets[[example_condition]][[1]]
 
-cat("\nFirst few rows of simulated data:\n")
-print(head(preview$data))
+cat("Example dataset (", example_condition, ", replication 1):\n", sep = "")
+cat("\n")
+cat("Data dimensions:", nrow(example_rep$data), "rows ×", ncol(example_rep$data), "columns\n")
+cat("\n")
 
-cat("\nObserved country means (raw item averages):\n")
-observed_means <- preview$data %>%
+cat("First 6 rows:\n")
+print(head(example_rep$data))
+cat("\n")
+
+cat("True parameter means by group:\n")
+cat("\n")
+
+group_summary <- example_rep$data %>%
   group_by(country) %>%
   summarise(
-    mean_theta_true = mean(true_theta),
-    mean_ers_true = mean(true_ers),
-    mean_item_score = mean(c_across(starts_with("Item"))),
+    n = n(),
+    mean_true_theta = mean(true_theta),
+    sd_true_theta = sd(true_theta),
+    mean_true_ers = mean(true_ers),
+    sd_true_ers = sd(true_ers),
     .groups = "drop"
   )
-print(observed_means)
 
-cat("\nNote: mean_item_score is affected by ERS and will differ from true_theta\n")
-cat("This is what we aim to correct with ERS adjustment methods.\n")
+print(group_summary)
+cat("\n")
+
+# Calculate observed score means
+observed_summary <- example_rep$data %>%
+  select(country, starts_with("Item")) %>%
+  pivot_longer(cols = starts_with("Item"), names_to = "item", values_to = "response") %>%
+  group_by(country) %>%
+  summarise(
+    mean_response = mean(response, na.rm = TRUE),
+    sd_response = sd(response, na.rm = TRUE),
+    .groups = "drop"
+  )
+
+cat("Observed response means by group:\n")
+print(observed_summary)
+cat("\n")
 
 
-# 6. Session Info ----
-cat("\n=== Session Info ===\n")
-cat("Script completed:", as.character(Sys.time()), "\n")
+# 7. Final Summary ----
+
+total_time <- difftime(Sys.time(), start_time_total, units = "mins")
+
+cat("=======================================================\n")
+cat("  Data Generation Completed Successfully!             \n")
+cat("=======================================================\n")
+cat("\n")
+cat("Total time:", round(total_time, 2), "minutes\n")
+cat("Total datasets generated:", sum(summary_table$n_replications), "\n")
+cat("Total participants:", sum(summary_table$n_replications * summary_table$total_sample_size), "\n")
+cat("\n")
+cat("Next steps:\n")
+cat("  1. Run: source('R/simulation/02_correction_methods.R')\n")
+cat("  2. Or run: source('R/run_all_analyses.R')\n")
+cat("\n")
+cat("=======================================================\n")

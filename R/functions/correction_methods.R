@@ -67,37 +67,54 @@ apply_zscore_correction <- function(data, items,
 
 #' Calculate Scale Scores with ERS Covariate Control
 #'
-#' Implements Model 2: Regress scale scores on ERS index and extract residuals.
+#' Implements Model 2: Regress scale scores on ERS index and extract corrected scores.
 #' This removes variance attributable to ERS from the scale scores.
+#'
+#' Two methods are available:
+#' - "residuals": Uses regression residuals (Weijters et al., 2013)
+#' - "adjusted": Uses adjusted scores Y - b*(ERS - mean(ERS)) (Greenleaf, 1992)
 #'
 #' @param data Data frame containing response data and ERS index
 #' @param items Character vector of item column names
 #' @param ers_index Name of ERS index variable in data
-#' @param method Method for scale score calculation: "mean" or "sum"
-#' @param return_residuals Return residuals (TRUE) or predicted values (FALSE)?
+#' @param score_method Method for scale score calculation: "mean" or "sum"
+#' @param correction_method Correction approach: "residuals" or "adjusted"
 #' @return Data frame with ERS-corrected scale score added
+#' @references
+#' Greenleaf (1992), Weijters et al. (2013), Baumgartner & Steenkamp (2001)
 #' @examples
 #' \dontrun{
 #' data <- data %>%
 #'   mutate(scale_score_raw = rowMeans(select(., Q1:Q10), na.rm = TRUE)) %>%
 #'   add_ers_index(items = paste0("Q", 1:10))
-#' data_corrected <- apply_covariate_correction(data, items = paste0("Q", 1:10),
-#'                                              ers_index = "ers_index")
+#'
+#' # Residual method (default)
+#' data_residual <- apply_covariate_correction(data, items = paste0("Q", 1:10),
+#'                                             correction_method = "residuals")
+#'
+#' # Adjusted scores method
+#' data_adjusted <- apply_covariate_correction(data, items = paste0("Q", 1:10),
+#'                                             correction_method = "adjusted")
 #' }
 apply_covariate_correction <- function(data, items,
                                       ers_index = "ers_index",
-                                      method = "mean",
-                                      return_residuals = TRUE) {
+                                      score_method = "mean",
+                                      correction_method = "residuals") {
+
+  # Validate correction method
+  if (!correction_method %in% c("residuals", "adjusted")) {
+    stop("correction_method must be 'residuals' or 'adjusted'")
+  }
 
   # Calculate raw scale score if not already present
   item_data <- data[, items, drop = FALSE]
 
-  if (method == "mean") {
+  if (score_method == "mean") {
     scale_score_raw <- rowMeans(item_data, na.rm = TRUE)
-  } else if (method == "sum") {
+  } else if (score_method == "sum") {
     scale_score_raw <- rowSums(item_data, na.rm = TRUE)
   } else {
-    stop("method must be 'mean' or 'sum'")
+    stop("score_method must be 'mean' or 'sum'")
   }
 
   # Check if ERS index exists
@@ -112,21 +129,35 @@ apply_covariate_correction <- function(data, items,
   lm_fit <- lm(scale_score_raw[complete_cases] ~
                 data[[ers_index]][complete_cases])
 
-  # Extract residuals or predicted values
-  if (return_residuals) {
-    # Residuals represent ERS-free scores
-    corrected_score <- rep(NA, length(scale_score_raw))
+  # Extract corrected scores based on method
+  corrected_score <- rep(NA, length(scale_score_raw))
+
+  if (correction_method == "residuals") {
+    # Method 1: Residuals approach (Weijters et al., 2013)
+    # Corrected score = residuals from regression
+    # This removes all variance explained by ERS
     corrected_score[complete_cases] <- residuals(lm_fit)
-    data$scale_score_ers_corrected <- corrected_score
-  } else {
-    # Predicted values represent ERS effect
-    predicted_score <- rep(NA, length(scale_score_raw))
-    predicted_score[complete_cases] <- fitted(lm_fit)
-    data$scale_score_ers_predicted <- predicted_score
+
+  } else if (correction_method == "adjusted") {
+    # Method 2: Adjusted scores approach (Greenleaf, 1992)
+    # Corrected score = Y - beta * (ERS - mean(ERS))
+    # This centers the correction around mean ERS
+    beta_ers <- coef(lm_fit)[2]  # Regression coefficient for ERS
+    ers_values <- data[[ers_index]]
+    ers_mean <- mean(ers_values[complete_cases], na.rm = TRUE)
+
+    corrected_score[complete_cases] <- scale_score_raw[complete_cases] -
+      beta_ers * (ers_values[complete_cases] - ers_mean)
   }
+
+  # Add corrected score to data
+  data$scale_score_ers_corrected <- corrected_score
 
   # Also add raw scale score for comparison
   data$scale_score_raw <- scale_score_raw
+
+  # Add ERS regression coefficient for reference
+  data$ers_beta <- coef(lm_fit)[2]
 
   return(data)
 }
