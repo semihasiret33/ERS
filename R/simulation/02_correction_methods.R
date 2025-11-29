@@ -120,6 +120,12 @@ apply_all_corrections <- function(data, item_cols) {
   # Fit MNRM model (may take time)
   cat("    Fitting MNRM model...\n")
 
+  # Initialize model3_means in case of errors
+  model3_means <- data.frame(
+    country = unique(group_var),
+    mean_mnrm = NA
+  )
+
   tryCatch({
     mnrm_fit <- multipleGroup(
       data = mirt_data,
@@ -167,6 +173,12 @@ apply_all_corrections <- function(data, item_cols) {
   # Uses irtrees package approach with pseudo-item decomposition
 
   cat("    Fitting IRTree model...\n")
+
+  # Initialize model4_means in case of errors
+  model4_means <- data.frame(
+    country = unique(group_var),
+    mean_irtree = NA
+  )
 
   tryCatch({
     # For IRTree, we use a simplified multidimensional approach
