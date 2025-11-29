@@ -101,16 +101,23 @@ generate_mnrm_falk <- function(N = 500,
       item_thresholds <- thresholds + m_values[j]
 
       # Convert thresholds to intercepts
-      # Following MNRM parameterization
+      # Following MNRM parameterization - generalized for any number of categories
       intercept <- rep(NA, categories)
       intercept[1] <- 0  # First category is reference
-      intercept[2] <- -item_thresholds[1] * alpha[1]
-      intercept[3] <- intercept[2] - item_thresholds[2] * alpha[1]
-      intercept[4] <- intercept[3] - item_thresholds[3] * alpha[1]
 
-      # Calculate new alpha parameters based on s-matrix
-      # This is the key MNRM transformation
-      alpha_matrix <- alpha %*% t(s_matrix)  # 2×1 %*% 1×4 = 2×4
+      # Build cumulative intercepts for remaining categories
+      for (k in 2:categories) {
+        if (k == 2) {
+          intercept[k] <- -item_thresholds[k - 1] * alpha[1]
+        } else {
+          intercept[k] <- intercept[k - 1] - item_thresholds[k - 1] * alpha[1]
+        }
+      }
+
+      # Calculate alpha-weighted s-matrix
+      # For each dimension d and category k: alpha[d] * s_matrix[d, k]
+      # Result is 2×categories matrix
+      alpha_matrix <- diag(alpha) %*% s_matrix  # (2×2) %*% (2×categories) = (2×categories)
 
       # Calculate category probabilities for each person
       # P(category k) = exp(theta' * alpha_k + intercept_k) / sum over all categories
