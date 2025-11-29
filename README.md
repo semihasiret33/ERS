@@ -20,18 +20,24 @@ Bu araştırma projesi, PISA gibi büyük ölçekli uluslararası değerlendirme
 
 Çalışma iki ana aşamadan oluşmaktadır:
 
-#### 1. Simülasyon Çalışması
+#### 1. Simülasyon Çalışması (Tam Faktöriyel Tasarım)
 
 **Amaç:** Farklı ERS düzeylerinin ve düzeltme yöntemlerinin ülke ortalamaları üzerindeki yanlılık (bias) ve hata (RMSE) düzeylerini karşılaştırmak.
 
-**Koşullar:**
-- ERS Düzeyleri: Düşük, Orta, Yüksek
-- Gruplar: İki ülke/grup (ERS farklı vs. ERS eşit)
-- Tekrarlama: 1000 iterasyon
+**Faktörler:**
+- **4 ERS Koşulu:** Düşük, Orta, Yüksek, Eşit
+- **3 Örneklem Büyüklüğü:** 100, 500, 1000
+- **3 Ölçek Uzunluğu:** 10, 20, 30 madde
+- **2 Likert Tipi:** 4-nokta, 5-nokta
+- **Tekrarlama:** 100 iterasyon/koşul
+
+**Toplam:** 4 × 3 × 3 × 2 = **72 koşul** × 100 = **7,200 dataset**
 
 **Değerlendirme:**
 - Yanlılık (Bias)
 - Kök Ortalama Kare Hata (RMSE)
+- Varyans yanlılığı
+- Sıralama korelasyonları
 
 #### 2. PISA Gerçek Veri Analizi
 
@@ -138,18 +144,24 @@ The main objective is to compare the effectiveness of simpler and more commonly 
 
 The study consists of two main phases:
 
-#### 1. Simulation Study
+#### 1. Simulation Study (Full Factorial Design)
 
 **Objective:** Compare bias and RMSE levels of different ERS levels and correction methods on country means.
 
-**Conditions:**
-- ERS Levels: Low, Medium, High
-- Groups: Two countries/groups (different ERS vs. equal ERS)
-- Replications: 1000 iterations
+**Factors:**
+- **4 ERS Conditions:** Low, Medium, High, Equal
+- **3 Sample Sizes:** 100, 500, 1000
+- **3 Scale Lengths:** 10, 20, 30 items
+- **2 Likert Types:** 4-point, 5-point
+- **Replications:** 100 iterations/condition
+
+**Total:** 4 × 3 × 3 × 2 = **72 conditions** × 100 = **7,200 datasets**
 
 **Evaluation:**
 - Bias
 - Root Mean Square Error (RMSE)
+- Variance bias
+- Rank-order correlations
 
 #### 2. PISA Real Data Analysis
 
