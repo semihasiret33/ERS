@@ -40,6 +40,10 @@ apply_zscore_correction <- function(data, items,
   person_mean <- rowMeans(item_data, na.rm = TRUE)
   person_sd <- apply(item_data, 1, sd, na.rm = TRUE)
 
+  # Handle zero SD case (when all items have same response)
+  # Replace 0 with 1 to avoid division by zero (results in 0 z-score)
+  person_sd[person_sd == 0 | is.na(person_sd)] <- 1
+
   # Standardize each item by person-specific mean and SD
   # Z = (X - person_mean) / person_sd
   zscore_data <- sweep(item_data, 1, person_mean, "-")
