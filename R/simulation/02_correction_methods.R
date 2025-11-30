@@ -212,10 +212,10 @@ apply_all_corrections <- function(data, n_items, n_categories) {
 
 
   # === Model 4: IRTree ===
-  # Note: IRTree is the most complex model, computationally intensive
-  # Uses irtrees package approach with pseudo-item decomposition
+  # Proper IRTree implementation with pseudo-item decomposition
+  # Following Böckenholt (2012) and Plieninger (2017)
 
-  cat("    Fitting IRTree model...\n")
+  cat("    Fitting IRTree model (", n_items, " items, ", n_categories, " categories)...\n", sep = "")
 
   # Initialize model4_means in case of errors
   model4_means <- data.frame(
@@ -223,53 +223,33 @@ apply_all_corrections <- function(data, n_items, n_categories) {
     mean_irtree = NA
   )
 
+  # Source pseudo-item converter
+  source("R/functions/irtree_pseudo_item_converter.R", local = TRUE)
+
   tryCatch({
-    # For IRTree, we use a simplified multidimensional approach
-    # Full IRTree requires pseudo-item decomposition (see irtrees package)
-    # Here we approximate with structured GPCM
-
-    # IRTree-like model with constrained parameters
-    irtree_syntax <- paste0(
-      "Theta = 1-", n_items, "\n",
-      "ERS = 1-", n_items, "\n",
-      "FREE = (GROUP, COV_21)"
-    )
-
-    # Use graded response model as approximation
-    # (Full IRTree would require custom node implementation)
-    irtree_fit <- multipleGroup(
+    # Fit proper IRTree with pseudo-items
+    irtree_result <- fit_proper_irtree_model(
       data = mirt_data,
-      model = irtree_syntax,
-      group = group_var,
-      itemtype = "graded",  # Approximation
-      method = "EM",
-      invariance = c("free_mean", "free_var"),
-      technical = list(NCYCLES = 1000),
-      verbose = FALSE
+      group_var = group_var,
+      n_items = n_items,
+      n_categories = n_categories
     )
 
-    # Extract means
-    coef_list_irtree <- coef(irtree_fit, simplify = TRUE)
-    group_names <- unique(group_var)
-
-    model4_estimates <- sapply(group_names, function(g_name) {
-      group_idx <- which(names(coef_list_irtree) == g_name)
-      if (length(group_idx) > 0 && "means" %in% names(coef_list_irtree[[group_idx]])) {
-        return(coef_list_irtree[[group_idx]]$means[1])
-      } else {
-        return(NA)
-      }
-    })
-
-    model4_means <- data.frame(
-      country = group_names,
-      mean_irtree = model4_estimates
-    )
+    if (irtree_result$convergence) {
+      model4_means <- irtree_result$theta_means %>%
+        select(country, mean_irtree)
+      cat("    IRTree converged successfully\n")
+    } else {
+      cat("    IRTree failed to converge\n")
+      model4_means <- data.frame(
+        country = unique(group_var),
+        mean_irtree = NA
+      )
+    }
 
   }, error = function(e) {
     cat("    IRTree fitting failed:", e$message, "\n")
     cat("    Using NA for IRTree estimates\n")
-    cat("    Note: Full IRTree implementation requires irtrees package\n")
     model4_means <- data.frame(
       country = unique(group_var),
       mean_irtree = NA
